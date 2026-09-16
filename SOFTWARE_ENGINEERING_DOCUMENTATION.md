@@ -1,6 +1,6 @@
 # SecureCart — Software Engineering System Architecture, Security & CI/CD Specification
 
-**Author / Maintainer**: Engineering Team  
+**Author / Maintainer**: SSS Vikas  
 **System Name**: SecureCart E-Commerce & Web Security Platform  
 **Target Environment**: Linux (Ubuntu 22.04 / 24.04 LTS), PHP 8.0+ (PHP 8.3 CLI/FPM), MySQL Server 8.0+  
 **Document Version**: 1.0.0  
