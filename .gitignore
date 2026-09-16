@@ -1,0 +1,11 @@
+# Exclude sensitive local configuration & secrets
+config/config.php
+passwords.txt
+.env
+
+# Temporary scratch & log artifacts
+scratch/
+*.log
+.DS_Store
+Thumbs.db
+vendor/

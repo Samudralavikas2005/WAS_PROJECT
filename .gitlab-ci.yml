@@ -1,0 +1,57 @@
+stages:
+  - lint
+  - test
+  - security
+  - deploy
+
+variables:
+  MYSQL_DATABASE: securecart
+  MYSQL_ROOT_PASSWORD: rootpassword
+  MYSQL_USER: vikas
+  MYSQL_PASSWORD: Vikas@2005
+
+default:
+  image: php:8.3-cli
+
+lint_job:
+  stage: lint
+  script:
+    - echo "Running PHP Syntax Linting across project files..."
+    - find . -type f -name "*.php" -not -path "./vendor/*" -not -path "./scratch/*" -exec php -l {} \; | grep -v "No syntax errors detected" && exit 1 || echo "All PHP files passed syntax checks."
+
+db_test_job:
+  stage: test
+  services:
+    - name: mysql:8.0
+      alias: mysql
+  variables:
+    DB_HOST: mysql
+    DB_PORT: '3306'
+    DB_NAME: securecart
+    DB_USER: vikas
+    DB_PASS: Vikas@2005
+    CI: 'true'
+  before_script:
+    - apt-get update && apt-get install -y default-mysql-client libpq-dev
+    - docker-php-ext-install pdo pdo_mysql
+  script:
+    - mysql --host=mysql -u root -prootpassword -e "GRANT ALL PRIVILEGES ON securecart.* TO 'vikas'@'%'; FLUSH PRIVILEGES;"
+    - mysql --host=mysql -u vikas -pVikas@2005 securecart < database/schema.sql
+    - mysql --host=mysql -u vikas -pVikas@2005 securecart < database/seed.sql
+    - php tests/run_tests.php
+
+security_job:
+  stage: security
+  script:
+    - echo "Auditing committed files for sensitive items..."
+    - if [ -f "config/config.php" ]; then echo "ERROR: config/config.php committed!"; exit 1; fi
+    - if [ -f "passwords.txt" ]; then echo "ERROR: passwords.txt committed!"; exit 1; fi
+    - echo "Clean source repository confirmed."
+
+deploy_job:
+  stage: deploy
+  only:
+    - main
+  script:
+    - echo "Deploying SecureCart to Production Environment..."
+    - echo "GitLab Commit SHA: $CI_COMMIT_SHA"
