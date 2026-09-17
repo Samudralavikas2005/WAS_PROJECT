@@ -1,0 +1,23 @@
+# SecureCart Web Application - Technical Requirements & Environment Dependencies
+
+# Operating System Requirements
+# Ubuntu 22.04 LTS / 24.04 LTS (Linux)
+
+# Core Runtimes & Server Engines
+php>=8.0.0
+php-cli>=8.0.0
+php-fpm>=8.0.0
+mysql-server>=8.0.0
+
+# Required PHP Extensions
+php-pdo
+php-mysql
+php-mbstring
+php-openssl
+php-json
+php-session
+
+# Development, Testing & Security Audit Tools
+git>=2.34.0
+php-cli
+sonarqube-scanner>=4.8.0
