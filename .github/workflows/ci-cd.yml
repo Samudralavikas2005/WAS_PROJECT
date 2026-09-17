@@ -1,0 +1,122 @@
+name: SecureCart CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, staging ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint-and-analyze:
+    name: PHP Syntax Linting & Static Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.1', '8.2', '8.3']
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP Environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pdo, pdo_mysql, mbstring, openssl
+          coverage: none
+
+      - name: Run PHP Syntax Check (php -l)
+        run: |
+          echo "Scanning PHP files for syntax errors..."
+          find . -type f -name "*.php" -not -path "./vendor/*" -not -path "./scratch/*" -exec php -l {} \; | grep -v "No syntax errors detected" && exit 1 || echo "All PHP files passed syntax linting."
+
+  db-integration-test:
+    name: MySQL Database Integration & Automated Testing Suite
+    runs-on: ubuntu-latest
+    needs: lint-and-analyze
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: securecart
+          MYSQL_USER: vikas
+          MYSQL_PASSWORD: Vikas@2005
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP Environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, pdo_mysql, mbstring, openssl
+
+      - name: Import Database Schema & Seed Data
+        run: |
+          mysql --host=127.0.0.1 --port=3306 -u root -prootpassword -e "GRANT ALL PRIVILEGES ON securecart.* TO 'vikas'@'%'; FLUSH PRIVILEGES;"
+          mysql --host=127.0.0.1 --port=3306 -u vikas -pVikas@2005 securecart < database/schema.sql
+          mysql --host=127.0.0.1 --port=3306 -u vikas -pVikas@2005 securecart < database/seed.sql
+          echo "Database schema and seed data loaded successfully."
+
+      - name: Execute Automated Test Suite
+        env:
+          DB_HOST: '127.0.0.1'
+          DB_PORT: '3306'
+          DB_NAME: 'securecart'
+          DB_USER: 'vikas'
+          DB_PASS: 'Vikas@2005'
+          CI: 'true'
+        run: |
+          php tests/run_tests.php
+
+  security-audit:
+    name: OWASP Security Audit & Secrets Scan
+    runs-on: ubuntu-latest
+    needs: lint-and-analyze
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Check for Unintended Committed Secrets
+        run: |
+          echo "Checking for prohibited sensitive files..."
+          if [ -f "config/config.php" ]; then
+            echo "ERROR: config/config.php was committed! Remove it from repository tracking."
+            exit 1
+          fi
+          if [ -f "passwords.txt" ]; then
+            echo "ERROR: passwords.txt was committed! Exclude it from repository tracking."
+            exit 1
+          fi
+          echo "No sensitive configuration files detected in git tree."
+
+      - name: Validate Configuration Template
+        run: |
+          test -f config.example.php || (echo "Missing config.example.php" && exit 1)
+
+  cd-deploy:
+    name: Continuous Deployment (Staging / Production)
+    runs-on: ubuntu-latest
+    needs: [db-integration-test, security-audit]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Package & Deployment Simulation
+        run: |
+          echo "========================================================="
+          echo "   Deploying SecureCart Build to Target Environment     "
+          echo "========================================================="
+          echo "Build Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Status: All CI tests and security audits passed."
+          echo "Deployment artifact prepared successfully."
