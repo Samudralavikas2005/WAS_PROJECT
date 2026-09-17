@@ -266,3 +266,5 @@ WAS_PROJECT/
 2. **Principle of Least Privilege**: Customer accounts cannot modify administrative tables or view peer receipts.
 3. **Never Trust Client Input**: All product prices, user IDs, and cart subtotals validated server-side.
 4. **Fail Securely**: Unhandled errors present generic user messages without leaking SQL syntax or stack traces.
+
+<!-- CI/CD Live Practical Demo Execution: Thursday 17 September 2026 08:52:19 AM IST -->
